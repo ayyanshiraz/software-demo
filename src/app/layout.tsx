@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BizVibez CRM",
+  title: "Software Demo",
   description: "Enterprise Management Modules",
 };
 
