@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const kpiStats = [
     { label: "Total Inventory Items", value: "15,482", change: "+12%", icon: <Package className="w-6 h-6" />, color: "bg-blue-50 text-blue-600" },
     { label: "Active Purchase Orders", value: "142", change: "Requires Review", icon: <ClipboardList className="w-6 h-6" />, color: "bg-purple-50 text-purple-600" },
-    { label: "Monthly Sales Revenue", value: "$45,231", change: "+8.4%", icon: <TrendingUp className="w-6 h-6" />, color: "bg-emerald-50 text-emerald-600" },
+    { label: "Monthly Sales Revenue", value: "PKR 45,231", change: "+8.4%", icon: <TrendingUp className="w-6 h-6" />, color: "bg-emerald-50 text-emerald-600" },
     { label: "Active Employees", value: "84", change: "On Duty", icon: <Users className="w-6 h-6" />, color: "bg-cyan-50 text-cyan-600" }
   ];
 
