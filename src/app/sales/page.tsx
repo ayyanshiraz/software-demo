@@ -24,6 +24,50 @@ export default function SalesPipeline() {
       setTimeout(() => {
         setIsProcessing(false);
         setTransactionComplete(true);
+
+        const qtyNum = Number(quantity) || 10;
+        const totalValue = qtyNum * 450;
+
+        // 1. Inventory & Variants Hub Sync (Deducts stock & updates status)
+        try {
+          const savedItems = localStorage.getItem("covico_inventory_covico_v3");
+          if (savedItems) {
+            const parsed = JSON.parse(savedItems);
+            const updated = parsed.map((item: any) => {
+              if (selectedItem.includes(item.product) || selectedItem.includes(item.sku)) {
+                const newStock = Math.max(0, item.stock - qtyNum);
+                return {
+                  ...item,
+                  stock: newStock,
+                  status: newStock > 0 ? (newStock < 15 ? "Low Stock" : "In Stock") : "Out of Stock",
+                  color: newStock > 0 ? (newStock < 15 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600") : "bg-rose-50 text-rose-600"
+                };
+              }
+              return item;
+            });
+            localStorage.setItem("covico_inventory_covico_v3", JSON.stringify(updated));
+          }
+        } catch (err) {
+          console.error("Failed to sync sales deduction", err);
+        }
+
+        // 2. Chart of Accounts Ledger Sync (Records double-entry: Dr. Accounts Receivable 1200, Cr. Sales Revenue 4010)
+        try {
+          const salesEvents = JSON.parse(localStorage.getItem("covico_sales_ledger_events") || "[]");
+          const newEvent = {
+            id: Date.now(),
+            ref: orderReference,
+            item: selectedItem,
+            qty: qtyNum,
+            debitAccount: "1200 - Accounts Receivable",
+            creditAccount: "4010 - Sales Revenue",
+            amount: totalValue,
+            timestamp: new Date().toISOString()
+          };
+          localStorage.setItem("covico_sales_ledger_events", JSON.stringify([newEvent, ...salesEvents]));
+        } catch (e) {
+          console.error("Failed to log sales ledger event", e);
+        }
       }, 1500);
     }
   };
@@ -38,20 +82,19 @@ export default function SalesPipeline() {
   };
 
   const finishedProducts = [
-    "FP-101: Premium Leather Jacket",
-    "FP-102: Executive Office Chair",
-    "FP-103: Mechanical Keyboard"
+    "EV-FRM-01: EV Scooty Main Frame",
+    "EV-SWA-02: Swing Arm Assembly",
+    "PAC-AUT-04: Precision Auto Component"
   ];
   
   const rawMaterials = [
-    "RM-001: Grade A Leather Sheet (Direct Sale)",
-    "RM-002: Industrial Nylon Thread (Direct Sale)",
-    "RM-045: Bulk Steel Bearings (Direct Sale)"
+    "RM-STEEL: Grade A Sheet Steel (Direct Sale)",
+    "RM-MOTOR: Electric Motor Assembly (Direct Sale)",
+    "RM-TUBE: Steel Tubing Structure (Direct Sale)"
   ];
 
   const currentOptions = productCategory === "Finished Product" ? finishedProducts : rawMaterials;
 
-  // DYNAMIC HELPER CLASSES TO AVOID PARSER CRASHES
   const step1CardClass = isOrderValidated 
     ? "bg-white rounded-3xl p-8 border border-emerald-200 shadow-lg shadow-emerald-900/5 ring-1 ring-emerald-500/10" 
     : "bg-white rounded-3xl p-8 border border-blue-200 shadow-xl shadow-blue-900/5 ring-1 ring-blue-500/20";
@@ -79,7 +122,7 @@ export default function SalesPipeline() {
   const categoryTextColor = productCategory === "Raw Material" ? "text-purple-400" : "text-blue-400";
 
   const executeButtonClass = isOrderValidated && selectedItem && quantity 
-    ? "w-full py-5 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_30px_rgba(37,99,235,0.3)]" 
+    ? "w-full py-5 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_30px_rgba(37,99,235,0.3)] cursor-pointer" 
     : "w-full py-5 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 bg-slate-800 text-slate-500 cursor-not-allowed";
 
   return (
@@ -92,14 +135,14 @@ export default function SalesPipeline() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-bold tracking-widest text-slate-700 uppercase">
-                COVICO Engineering (PVT) LTD.
+                COVICO Engineering (PVT) LTD
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
               Sales Execution Terminal
             </h1>
             <p className="text-base text-slate-500 max-w-2xl leading-relaxed">
-              Process outbound sales transactions. Strict governance requires an authorized Sales Order or Customer PO before processing.
+              Process outbound sales transactions for EV frames and auto parts. Strict governance requires an authorized Sales Order or Customer PO before processing.
             </p>
           </div>
         </header>
@@ -116,11 +159,11 @@ export default function SalesPipeline() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">Mandatory Order Reference</h2>
-                    <p className="text-sm text-slate-500 mt-0.5">Sales cannot process without a valid PO/SO.</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Sales cannot process without a valid PO or SO.</p>
                   </div>
                 </div>
                 {isOrderValidated && (
-                  <button onClick={() => setIsOrderValidated(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider">
+                  <button onClick={() => setIsOrderValidated(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider cursor-pointer">
                     Edit Ref
                   </button>
                 )}
@@ -140,7 +183,7 @@ export default function SalesPipeline() {
                       placeholder="e.g., SO-8842 or CUST-PO-991" 
                       className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 font-bold tracking-wide outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all uppercase" 
                     />
-                    <button onClick={handleValidateOrder} className="px-8 py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-blue-600 transition-colors shadow-md shrink-0">
+                    <button onClick={handleValidateOrder} className="px-8 py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-blue-600 transition-colors shadow-md shrink-0 cursor-pointer">
                       Validate Order
                     </button>
                   </div>
@@ -163,7 +206,7 @@ export default function SalesPipeline() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">Item Configuration</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">Select product category and inventory item.</p>
+                  <p className="text-sm text-slate-500 mt-0.5">Select product category and inventory part.</p>
                 </div>
               </div>
 
@@ -175,7 +218,7 @@ export default function SalesPipeline() {
                       onClick={() => { setProductCategory("Finished Product"); setSelectedItem(""); }}
                       className={finishedTabClass}
                     >
-                      Finished Products
+                      Finished Parts
                     </button>
                     <button 
                       onClick={() => { setProductCategory("Raw Material"); setSelectedItem(""); }}
@@ -188,11 +231,11 @@ export default function SalesPipeline() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Select Item</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Select Part</label>
                     <select 
                       value={selectedItem}
                       onChange={(e) => setSelectedItem(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500 cursor-pointer appearance-none"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500 cursor-pointer appearance-none font-semibold"
                     >
                       <option value="">Choose from inventory...</option>
                       {currentOptions.map((opt, idx) => (
@@ -280,11 +323,11 @@ export default function SalesPipeline() {
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Transaction Successful</h3>
                   <p className="text-slate-400 text-sm mb-8 px-4">
-                    Order <strong className="text-emerald-400 uppercase">{orderReference}</strong> processed. Inventory deducted and sales ledger updated.
+                    Order <strong className="text-emerald-400 uppercase">{orderReference}</strong> processed successfully. Inventory stock levels updated and double-entry ledger impact recorded (Dr. Accounts Receivable [1200], Cr. Sales Revenue [4010]).
                   </p>
                   <button 
                     onClick={resetTerminal}
-                    className="px-8 py-3 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-700 transition-colors border border-slate-700"
+                    className="px-8 py-3 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-700 transition-colors border border-slate-700 cursor-pointer"
                   >
                     Process New Sale
                   </button>

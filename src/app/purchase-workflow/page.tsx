@@ -6,6 +6,8 @@ import React, { useState } from "react";
 export default function PurchaseWorkflow() {
   const [currentStep, setCurrentStep] = useState(1);
   const [department, setDepartment] = useState("");
+  const [selectedPart, setSelectedPart] = useState("EV-FRM-01: EV Scooty Main Frame");
+  const [requestedQty, setRequestedQty] = useState("50");
   const [poApproved, setPoApproved] = useState(false);
   const [receivedQty, setReceivedQty] = useState("");
   const [actualGrnValue, setActualGrnValue] = useState("");
@@ -34,10 +36,36 @@ export default function PurchaseWorkflow() {
   const handleGenerateGRN = () => {
     if (actualGrnValue !== "") {
       setCurrentStep(5);
+
+      // Sync purchased item into shared inventory/variants and ledger storage
+      try {
+        const existingItems = JSON.parse(localStorage.getItem("covico_inventory_covico_v3") || "[]");
+        const parts = selectedPart.split(":");
+        const sku = parts[0] ? parts[0].trim() : "EV-PRD-01";
+        const productName = parts[1] ? parts[1].trim() : selectedPart;
+        const qtyNum = Number(receivedQty) || Number(requestedQty) || 50;
+
+        const newItem = {
+          id: Date.now(),
+          product: productName,
+          sku: sku,
+          size: "Standard",
+          stock: qtyNum,
+          status: "In Stock",
+          color: "bg-emerald-50 text-emerald-600",
+          ledgerRoute: "1001",
+          directSale: true,
+          productionConsumption: true
+        };
+
+        const filtered = existingItems.filter((item: any) => item.sku !== sku);
+        localStorage.setItem("covico_inventory_covico_v3", JSON.stringify([newItem, ...filtered]));
+      } catch (err) {
+        console.error("Failed to sync purchase to inventory", err);
+      }
     }
   };
 
-  // UI HELPER FUNCTIONS FOR CLEANER JSX
   const getSidebarCardClass = (stepNum: number) => {
     if (currentStep === stepNum) return "border-blue-600 bg-white shadow-lg shadow-blue-900/5 ring-1 ring-blue-600/20 scale-100";
     if (currentStep > stepNum) return "border-emerald-200 bg-emerald-50/50 scale-95 opacity-80";
@@ -57,32 +85,28 @@ export default function PurchaseWorkflow() {
     <div className="fixed md:static inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F4F7F9] p-6 font-sans sm:p-12 w-full">
       <div className="mx-auto max-w-6xl">
         
-        {/* HEADER */}
         <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-bold tracking-widest text-slate-700 uppercase">
-               COVICO Engineering (PVT) LTD.
+               COVICO Engineering (PVT) LTD
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
               Procurement Engine
             </h1>
             <p className="text-base text-slate-500 max-w-xl leading-relaxed">
-              Complete the workflow stages sequentially. Strict hierarchies enforce data integrity from request to ledger.
+              Complete workflow stages for raw steel, EV scooty frames, and auto parts procurement sequentially with strict ledger integration.
             </p>
           </div>
         </header>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* LEFT SIDEBAR: PROGRESS TRACKER */}
           <div className="w-full lg:w-1/3 flex flex-col gap-4 relative">
-            {/* Connecting Line */}
             <div className="absolute left-[1.6rem] top-8 bottom-8 w-0.5 bg-slate-200 -z-10" />
 
-            {/* Step 1 Tracker */}
             <div className={`relative flex items-start gap-4 p-5 rounded-2xl border transition-all duration-500 ${getSidebarCardClass(1)}`}>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-colors ${getSidebarIconClass(1)}`}>1</div>
               <div>
@@ -91,7 +115,6 @@ export default function PurchaseWorkflow() {
               </div>
             </div>
 
-            {/* Step 2 Tracker */}
             <div className={`relative flex items-start gap-4 p-5 rounded-2xl border transition-all duration-500 ${getSidebarCardClass(2)}`}>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-colors ${getSidebarIconClass(2)}`}>2</div>
               <div>
@@ -100,7 +123,6 @@ export default function PurchaseWorkflow() {
               </div>
             </div>
 
-            {/* Step 3 Tracker */}
             <div className={`relative flex items-start gap-4 p-5 rounded-2xl border transition-all duration-500 ${getSidebarCardClass(3)}`}>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-colors ${getSidebarIconClass(3)}`}>3</div>
               <div>
@@ -109,7 +131,6 @@ export default function PurchaseWorkflow() {
               </div>
             </div>
 
-            {/* Step 4 Tracker */}
             <div className={`relative flex items-start gap-4 p-5 rounded-2xl border transition-all duration-500 ${getSidebarCardClass(4)}`}>
               <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0 transition-colors ${getSidebarIconClass(4)}`}>4</div>
               <div>
@@ -119,7 +140,6 @@ export default function PurchaseWorkflow() {
             </div>
           </div>
 
-          {/* RIGHT PANEL: ACTIVE WORKFLOW STAGE */}
           <div className="w-full lg:w-2/3">
             
             {currentStep === 1 && (
@@ -139,11 +159,38 @@ export default function PurchaseWorkflow() {
                       type="text" 
                       value={department}
                       onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="e.g., Factory Floor B" 
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                      placeholder="e.g., Factory Floor Assembly B" 
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-semibold" 
                     />
                   </div>
-                  <button onClick={handleGenerateDemandNote} className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-blue-600 transition-colors shadow-md">
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Select Part / Material</label>
+                      <select 
+                        value={selectedPart}
+                        onChange={(e) => setSelectedPart(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500 font-semibold cursor-pointer"
+                      >
+                        <option value="EV-FRM-01: EV Scooty Main Frame">EV-FRM-01: EV Scooty Main Frame</option>
+                        <option value="EV-SWA-02: Swing Arm Assembly">EV-SWA-02: Swing Arm Assembly</option>
+                        <option value="RM-STEEL: Grade A Sheet Steel">RM-STEEL: Grade A Sheet Steel (Kgs)</option>
+                        <option value="RM-MOTOR: Electric Motor Assembly">RM-MOTOR: Electric Motor Assembly</option>
+                        <option value="SMS-PTS-03: Sheet Metal Stamping">SMS-PTS-03: Sheet Metal Stamping</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Requested Quantity</label>
+                      <input 
+                        type="number" 
+                        value={requestedQty}
+                        onChange={(e) => setRequestedQty(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 font-bold outline-none focus:bg-white focus:border-blue-500" 
+                      />
+                    </div>
+                  </div>
+
+                  <button onClick={handleGenerateDemandNote} className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-blue-600 transition-colors shadow-md cursor-pointer">
                     Authorize Demand Request
                   </button>
                 </div>
@@ -156,14 +203,20 @@ export default function PurchaseWorkflow() {
                   <div className="p-3 rounded-xl bg-purple-50 text-purple-600 text-xl">🛡️</div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">PO Approval Matrix</h2>
-                    <p className="text-sm text-slate-500 mt-1">Review the linked demand note and grant finance clearance.</p>
+                    <p className="text-sm text-slate-500 mt-1">Review linked demand note for {selectedPart} and grant finance clearance.</p>
                   </div>
                 </div>
 
                 <div className="space-y-6 pt-4">
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Linked Demand Note</label>
-                    <div className="text-sm font-semibold text-slate-900">DN-2044 ({department || "Unknown Department"})</div>
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex justify-between items-center">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Linked Demand Note</label>
+                      <div className="text-sm font-semibold text-slate-900">DN-2044 ({department || "Factory Floor"})</div>
+                    </div>
+                    <div className="text-right">
+                      <span className="block text-xs font-bold text-indigo-600 uppercase">Part & Qty</span>
+                      <span className="text-sm font-black text-slate-800">{requestedQty} Units</span>
+                    </div>
                   </div>
                   
                   <div className="p-5 rounded-2xl bg-white border border-slate-200">
@@ -182,12 +235,12 @@ export default function PurchaseWorkflow() {
 
                   <div className="flex flex-col sm:flex-row gap-4 pt-2">
                     {!poApproved ? (
-                      <button onClick={() => setPoApproved(true)} className="flex-1 py-4 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition-colors shadow-md">
+                      <button onClick={() => setPoApproved(true)} className="flex-1 py-4 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 transition-colors shadow-md cursor-pointer">
                         Grant Manager Approval
                       </button>
                     ) : (
-                      <button onClick={handleSendToSupplier} className="flex-1 py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-purple-600 transition-colors shadow-md flex items-center justify-center gap-2">
-                        Dispatch to Supplier →
+                      <button onClick={handleSendToSupplier} className="flex-1 py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-purple-600 transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer">
+                        Dispatch PO to Supplier →
                       </button>
                     )}
                   </div>
@@ -201,7 +254,7 @@ export default function PurchaseWorkflow() {
                   <div className="p-3 rounded-xl bg-amber-50 text-amber-600 text-xl">🚧</div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">Inward Gate Pass (IGP)</h2>
-                    <p className="text-sm text-slate-500 mt-1">Record physical receipt at the gate.</p>
+                    <p className="text-sm text-slate-500 mt-1">Record physical receipt of components at the factory gate.</p>
                   </div>
                 </div>
 
@@ -211,11 +264,11 @@ export default function PurchaseWorkflow() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">PO Expected</label>
-                    <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-4 text-sm text-slate-500 font-bold">500 Units</div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">PO Expected Qty</label>
+                    <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-4 text-sm text-slate-700 font-black">{requestedQty} Units</div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Actual Received</label>
+                    <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Actual Received Qty</label>
                     <input 
                       type="number" 
                       value={receivedQty}
@@ -227,8 +280,8 @@ export default function PurchaseWorkflow() {
                 </div>
                 
                 <div className="pt-8">
-                  <button onClick={handleLogGatePass} className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-amber-500 transition-colors shadow-md">
-                    Log Gate Arrival
+                  <button onClick={handleLogGatePass} className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-amber-500 transition-colors shadow-md cursor-pointer">
+                    Log Gate Arrival & Verify
                   </button>
                 </div>
               </div>
@@ -240,14 +293,14 @@ export default function PurchaseWorkflow() {
                   <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xl">🧾</div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">GRN & Ledger Sync</h2>
-                    <p className="text-sm text-slate-500 mt-1">Verify financial values before hitting the supplier ledger.</p>
+                    <p className="text-sm text-slate-500 mt-1">Verify financial values for {selectedPart} before hitting the supplier ledger.</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Original PO Value</label>
-                    <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-4 text-sm text-slate-500 font-bold">${expectedPoValue}</div>
+                    <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-4 text-sm text-slate-700 font-black">${expectedPoValue}</div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Final Billed Value</label>
@@ -272,7 +325,7 @@ export default function PurchaseWorkflow() {
                 )}
 
                 <div className="pt-8">
-                  <button onClick={handleGenerateGRN} className={`w-full py-4 rounded-xl text-white font-bold text-sm transition-colors shadow-md ${isLedgerMismatch ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
+                  <button onClick={handleGenerateGRN} className={`w-full py-4 rounded-xl text-white font-bold text-sm transition-colors shadow-md cursor-pointer ${isLedgerMismatch ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
                     {isLedgerMismatch ? "Generate GRN (Hold Ledger Sync)" : "Finalize & Update Supplier Ledger"}
                   </button>
                 </div>
@@ -285,9 +338,9 @@ export default function PurchaseWorkflow() {
                   <span className="text-white text-4xl">✓</span>
                 </div>
                 <h2 className="text-3xl font-bold text-emerald-900 mb-2">Workflow Complete</h2>
-                <p className="text-emerald-700 font-medium">The procurement cycle has been successfully logged and processed.</p>
-                <button onClick={() => window.location.reload()} className="mt-8 px-8 py-3 rounded-xl bg-white text-emerald-700 font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors">
-                  Start New Workflow
+                <p className="text-emerald-700 font-medium">The procurement cycle for {selectedPart} has been successfully logged and processed into inventory.</p>
+                <button onClick={() => window.location.reload()} className="mt-8 px-8 py-3 rounded-xl bg-white text-emerald-700 font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer">
+                  Start New Procurement Cycle
                 </button>
               </div>
             )}

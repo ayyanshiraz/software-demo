@@ -1,12 +1,90 @@
 // src/app/accounts/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function AccountsCommandCenter() {
   const [activeModule, setActiveModule] = useState("dashboard");
+  const [newItemName, setNewItemName] = useState("");
+  const [newAssetRoute, setNewAssetRoute] = useState("1010 - Inventory Asset");
+  const [newCogsRoute, setNewCogsRoute] = useState("5010 - COGS Raw");
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Premium SVG Icons for a professional look
+  const [mappings, setMappings] = useState([
+    { code: "EV-FRM-01", name: "EV Scooty Main Frame", asset: "1010 - Inventory", cogs: "5010 - COGS Raw" },
+    { code: "EV-SWA-02", name: "Swing Arm Assembly", asset: "1020 - Finished Goods", cogs: "5020 - COGS Finished" },
+    { code: "SMS-PTS-03", name: "Sheet Metal Stamping Part", asset: "1010 - Inventory", cogs: "5010 - COGS Raw" }
+  ]);
+
+  const [liveSalesEvents, setLiveSalesEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const savedItems = localStorage.getItem("covico_inventory_covico_v3");
+    const savedMappings = localStorage.getItem("covico_ledger_mappings_v2");
+    const savedSalesEvents = localStorage.getItem("covico_sales_ledger_events");
+
+    if (savedSalesEvents) {
+      try {
+        setLiveSalesEvents(JSON.parse(savedSalesEvents));
+      } catch (e) {}
+    }
+    
+    let loaded: any[] = [];
+    if (savedItems) {
+      try {
+        const parsed = JSON.parse(savedItems);
+        parsed.forEach((item: any, idx: number) => {
+          if (item.product && item.product.length > 3) {
+            loaded.push({
+              code: item.sku || `EV-PART-00${idx}`,
+              name: item.product,
+              asset: `${item.ledgerRoute || "1001"} - Inventory Asset`,
+              cogs: "5001 - COGS Expense"
+            });
+          }
+        });
+      } catch (err) {}
+    }
+
+    if (savedMappings) {
+      try {
+        const parsedMap = JSON.parse(savedMappings);
+        loaded = [...parsedMap, ...loaded];
+      } catch (e) {}
+    }
+
+    if (loaded.length > 0) {
+      setMappings(prev => {
+        const existingCodes = new Set(prev.map(p => p.code));
+        const uniqueNew = loaded.filter(l => !existingCodes.has(l.code) && l.code.length > 3);
+        return [...uniqueNew, ...prev];
+      });
+    }
+  }, []);
+
+  const handleSaveMapping = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemName.trim()) {
+      alert("Please enter part name.");
+      return;
+    }
+
+    const newEntry = {
+      code: `EV-PART-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: newItemName,
+      asset: newAssetRoute,
+      cogs: newCogsRoute
+    };
+
+    const updated = [newEntry, ...mappings];
+    setMappings(updated);
+    localStorage.setItem("covico_ledger_mappings_v2", JSON.stringify(updated));
+
+    setSuccessMsg(`Successfully mapped ${newItemName} to general ledger routes!`);
+    setNewItemName("");
+    setTimeout(() => setSuccessMsg(null), 5000);
+  };
+
   const Icons = {
     Database: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>,
     Link: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
@@ -16,45 +94,48 @@ export default function AccountsCommandCenter() {
 
   return (
     <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans w-full">
-      {/* Decorative Background Elements */}
       <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-slate-200/50 to-transparent -z-10 pointer-events-none" />
       <div className="fixed -top-40 -right-40 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl -z-10 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-10">
         
-        {/* HEADER SECTION */}
+        {successMsg && (
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold shadow-sm">
+            {successMsg}
+          </div>
+        )}
+
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
               <span className="text-xs font-bold tracking-widest text-slate-700 uppercase">
-                Financial Core Engine
+                COVICO Engineering Financial Core
               </span>
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
               Chart of Accounts
             </h1>
             <p className="text-base text-slate-500 max-w-2xl leading-relaxed">
-              Master ledger mappings, monitor live double-entry impacts, and govern supplier payables strictly through verified GRN rules.
+              Master ledger mappings for EV scooty parts and sheet metal components, monitor live double-entry impacts, and govern supplier payables strictly through verified GRN rules.
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">
+            <button className="px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm shadow-sm hover:bg-slate-50 transition-all cursor-pointer">
               Export Ledgers
             </button>
-            <button className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center gap-2">
+            <button className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center gap-2 cursor-pointer">
               {Icons.ShieldCheck} Audit Mode
             </button>
           </div>
         </header>
 
-        {/* TOP KPI DASHBOARD */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
             { label: "Total Asset Value", value: "$1,245,000", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
             { label: "Verified Liabilities (GRN)", value: "$84,230", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
             { label: "Recognized Revenue", value: "$345,231", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-            { label: "Unmapped Items", value: "0", color: "text-slate-600", bg: "bg-slate-100", border: "border-slate-200" }
+            { label: "Unmapped Parts", value: "0", color: "text-slate-600", bg: "bg-slate-100", border: "border-slate-200" }
           ].map((stat, idx) => (
             <div key={idx} className={`bg-white rounded-3xl p-6 border ${stat.border} shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group`}>
               <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full ${stat.bg} opacity-50 group-hover:scale-150 transition-transform duration-500`} />
@@ -68,27 +149,21 @@ export default function AccountsCommandCenter() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* LEFT COLUMN: ITEM MAPPINGS & RULES (Spans 7 cols) */}
           <div className="lg:col-span-7 space-y-8">
             
-            {/* REQUIREMENT 1 & 2: LEDGER MAPPING MATRIX */}
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     {Icons.Link} Ledger Mapping Matrix
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1">Requirement: Every item must map to a financial ledger.</p>
+                  <p className="text-xs text-slate-500 mt-1">Requirement: Every part must map to a financial ledger.</p>
                 </div>
                 <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">Strict Enforcement</span>
               </div>
               
-              <div className="p-6 space-y-4">
-                {/* Visualizing Existing Mappings */}
-                {[
-                  { code: "RM-001", name: "Premium Leather", asset: "1010 - Inventory", cogs: "5010 - COGS Raw" },
-                  { code: "FP-101", name: "Executive Jacket", asset: "1020 - Finished Goods", cogs: "5020 - COGS Finished" }
-                ].map((item, i) => (
+              <div className="p-6 space-y-4 max-h-[450px] overflow-y-auto">
+                {mappings.map((item, i) => (
                   <div key={i} className="flex flex-col md:flex-row items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white transition-colors group">
                     <div className="w-full md:w-1/3">
                       <div className="text-sm font-bold text-slate-900">{item.code}</div>
@@ -110,46 +185,76 @@ export default function AccountsCommandCenter() {
                   </div>
                 ))}
 
-                {/* REQUIREMENT 2: NEW ITEM MAPPING FORM UI */}
-                <div className="mt-6 pt-6 border-t border-dashed border-slate-200">
+                <form onSubmit={handleSaveMapping} className="mt-6 pt-6 border-t border-dashed border-slate-200">
                   <div className="mb-4">
-                    <h3 className="text-sm font-bold text-slate-900">Initialize New Item Mapping</h3>
-                    <p className="text-xs text-slate-500">System rule: New items require ledger routing before activation.</p>
+                    <h3 className="text-sm font-bold text-slate-900">Initialize New Part Mapping</h3>
+                    <p className="text-xs text-slate-500">System rule: New parts require ledger routing before activation.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="text" placeholder="New Item Name" className="p-3 rounded-xl bg-white border border-slate-200 text-sm outline-none focus:border-indigo-500" />
-                    <select className="p-3 rounded-xl bg-white border border-slate-200 text-sm outline-none focus:border-indigo-500 text-slate-500">
-                      <option>Select Asset Ledger...</option>
-                      <option>1010 - Inventory Asset</option>
+                    <input 
+                      type="text" 
+                      placeholder="New Part Name" 
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      className="p-3 rounded-xl bg-white border border-slate-200 text-sm outline-none focus:border-indigo-500 text-slate-900 font-semibold" 
+                    />
+                    <select 
+                      value={newAssetRoute}
+                      onChange={(e) => setNewAssetRoute(e.target.value)}
+                      className="p-3 rounded-xl bg-white border border-slate-200 text-sm outline-none focus:border-indigo-500 text-slate-600 cursor-pointer"
+                    >
+                      <option value="1010 - Inventory Asset">1010 - Inventory Asset</option>
+                      <option value="1020 - Finished Goods">1020 - Finished Goods</option>
                     </select>
-                    <select className="p-3 rounded-xl bg-white border border-slate-200 text-sm outline-none focus:border-indigo-500 text-slate-500">
-                      <option>Select COGS Ledger...</option>
-                      <option>5010 - COGS Expense</option>
+                    <select 
+                      value={newCogsRoute}
+                      onChange={(e) => setNewCogsRoute(e.target.value)}
+                      className="p-3 rounded-xl bg-white border border-slate-200 text-sm outline-none focus:border-indigo-500 text-slate-600 cursor-pointer"
+                    >
+                      <option value="5010 - COGS Raw">5010 - COGS Raw</option>
+                      <option value="5020 - COGS Finished">5020 - COGS Finished</option>
                     </select>
                   </div>
-                  <button className="mt-4 w-full py-3 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-md hover:bg-indigo-600 transition-colors">
+                  <button type="submit" className="mt-4 w-full py-3 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-md hover:bg-indigo-600 transition-colors cursor-pointer">
                     Validate & Save Mapping
                   </button>
-                </div>
+                </form>
               </div>
             </div>
 
           </div>
 
-          {/* RIGHT COLUMN: TRANSACTIONS & SUPPLIERS (Spans 5 cols) */}
           <div className="lg:col-span-5 space-y-8">
             
-            {/* REQUIREMENT 3: TRANSACTION IMPACTS */}
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
               <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   {Icons.Database} Double-Entry Impact Engine
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">Requirement: Defined accounting impacts.</p>
+                <p className="text-xs text-slate-500 mt-1">Requirement: Defined accounting impacts & live sales dispatches.</p>
               </div>
-              <div className="p-6 space-y-5">
+              <div className="p-6 space-y-5 max-h-[500px] overflow-y-auto">
                 
-                {/* Impact Node 1: Purchase/GRN */}
+                {/* LIVE SALES TRANSACTIONS DISPLAYED DYNAMICALLY */}
+                {liveSalesEvents.map((sale) => (
+                  <div key={sale.id} className="relative pl-6 border-l-2 border-emerald-300">
+                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-500 ring-4 ring-white" />
+                    <div className="text-xs font-bold text-emerald-600 mb-1">LIVE SALE DISPATCH (REF: {sale.ref})</div>
+                    <div className="bg-emerald-50/40 rounded-xl border border-emerald-100 p-4 space-y-3">
+                      <div className="text-xs font-semibold text-slate-800">{sale.item} ({sale.qty} Units)</div>
+                      <div className="h-px bg-emerald-200 w-full" />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-700">Dr. {sale.debitAccount}</span>
+                        <span className="text-sm font-black text-emerald-600">+${sale.amount}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-700">Cr. {sale.creditAccount}</span>
+                        <span className="text-sm font-black text-rose-600">-${sale.amount}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 <div className="relative pl-6 border-l-2 border-amber-200">
                   <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-amber-500 ring-4 ring-white" />
                   <div className="text-xs font-bold text-amber-600 mb-1">EVENT: GOODS RECEIPT (GRN-992)</div>
@@ -166,27 +271,9 @@ export default function AccountsCommandCenter() {
                   </div>
                 </div>
 
-                {/* Impact Node 2: Sales */}
-                <div className="relative pl-6 border-l-2 border-blue-200">
-                  <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-500 ring-4 ring-white" />
-                  <div className="text-xs font-bold text-blue-600 mb-1">EVENT: SALES DISPATCH (INV-402)</div>
-                  <div className="bg-slate-50 rounded-xl border border-slate-100 p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-bold text-slate-700">Dr. Accounts Receivable (1200)</span>
-                      <span className="text-sm font-black text-emerald-600">+$1,200</span>
-                    </div>
-                    <div className="h-px bg-slate-200 w-full" />
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-bold text-slate-700">Cr. Sales Revenue (4010)</span>
-                      <span className="text-sm font-black text-rose-600">-$1,200</span>
-                    </div>
-                  </div>
-                </div>
-
               </div>
             </div>
 
-            {/* REQUIREMENT 4: GRN GOVERNED SUPPLIER LEDGER */}
             <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden relative">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
               
@@ -198,11 +285,9 @@ export default function AccountsCommandCenter() {
               </div>
 
               <div className="p-6 space-y-4">
-                
-                {/* Supplier Widget */}
                 <div className="p-5 rounded-2xl bg-slate-800/50 border border-slate-700 backdrop-blur-sm">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-sm font-bold text-white">Global Leathers Ltd</h3>
+                    <h3 className="text-sm font-bold text-white">Global Steel & Auto Parts</h3>
                     <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-500/30">
                       Ledger Active
                     </span>

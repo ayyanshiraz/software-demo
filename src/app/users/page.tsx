@@ -3,20 +3,35 @@
 
 import React, { useState } from "react";
 import { 
-  Users, UserPlus, Shield, Search, Key, Mail, MoreVertical, CheckCircle2 
+  Users, UserPlus, Shield, Search, Key, Mail, CheckCircle2, Edit2, Trash2 
 } from "lucide-react";
 
 export default function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
-  const usersList = [
-    { id: "USR-001", name: "Yasir Irshad", email: "yasir@blackzero.org", role: "Super Admin", status: "Active", lastLogin: "2 mins ago", initials: "MH", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  const initialUsers = [
+    { id: "USR-001", name: "Yasir Irshad", email: "yasir@blackzero.org", role: "Super Admin", status: "Active", lastLogin: "2 mins ago", initials: "YI", color: "bg-purple-100 text-purple-700 border-purple-200" },
     { id: "USR-002", name: "Ayyan Shiraz", email: "ayyan@blackzero.org", role: "System Admin", status: "Active", lastLogin: "1 hour ago", initials: "AS", color: "bg-blue-100 text-blue-700 border-blue-200" },
     { id: "USR-003", name: "Ajwa Arshad", email: "ajwa@blackzero.org", role: "System Admin", status: "Active", lastLogin: "Just now", initials: "AA", color: "bg-blue-100 text-blue-700 border-blue-200" },
     { id: "USR-004", name: "Alishba Zia", email: "alishba@blackzero.org", role: "Manager", status: "Active", lastLogin: "5 hours ago", initials: "AZ", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     { id: "USR-005", name: "Usman Asif", email: "usman@blackzero.org", role: "Sales Agent", status: "Invite Pending", lastLogin: "Never", initials: "UA", color: "bg-amber-100 text-amber-700 border-amber-200" }
   ];
+
+  const [usersList, setUsersList] = useState(initialUsers);
+
+  // Modal & Form State
+  const [modalMode, setModalMode] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    id: "",
+    name: "",
+    email: "",
+    role: "System Admin",
+    status: "Active",
+    lastLogin: "Just now",
+    initials: ""
+  });
 
   const filters = ["All", "Super Admin", "System Admin", "Manager", "Sales Agent"];
 
@@ -24,6 +39,56 @@ export default function UserManagementPage() {
     (activeFilter === "All" || user.role === activeFilter) &&
     (user.name.toLowerCase().includes(searchQuery.toLowerCase()) || user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const handleOpenModal = (mode: string, user: any = null) => {
+    setModalMode(mode);
+    setSelectedUser(user);
+    if (user) {
+      setFormData({ ...user });
+    } else {
+      const newId = "USR-00" + (usersList.length + 1);
+      setFormData({
+        id: newId,
+        name: "",
+        email: "",
+        role: "System Admin",
+        status: "Active",
+        lastLogin: "Just now",
+        initials: "U"
+      });
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalMode(null);
+    setSelectedUser(null);
+  };
+
+  const handleSaveUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nameParts = formData.name.trim().split(" ");
+    const initials = nameParts.length > 1 
+      ? (nameParts[0][0] + nameParts[1][0]).toUpperCase() 
+      : formData.name.substring(0, 2).toUpperCase();
+
+    let color = "bg-blue-100 text-blue-700 border-blue-200";
+    if (formData.role === "Super Admin") color = "bg-purple-100 text-purple-700 border-purple-200";
+    else if (formData.role === "Manager") color = "bg-emerald-100 text-emerald-700 border-emerald-200";
+    else if (formData.role === "Sales Agent") color = "bg-amber-100 text-amber-700 border-amber-200";
+
+    const userData = { ...formData, initials, color };
+
+    if (modalMode === "add") {
+      setUsersList([userData, ...usersList]);
+    } else if (modalMode === "edit") {
+      setUsersList(usersList.map(u => u.id === selectedUser.id ? userData : u));
+    }
+    handleCloseModal();
+  };
+
+  const handleDeleteUser = (id: string) => {
+    setUsersList(usersList.filter(u => u.id !== id));
+  };
 
   return (
     <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-hidden min-h-screen bg-[#f8fafc] text-slate-800 p-4 md:p-8 w-full font-sans">
@@ -34,7 +99,7 @@ export default function UserManagementPage() {
       
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* HEADER SECTION - Glassmorphism floating pill */}
+        {/* HEADER SECTION */}
         <header className="relative bg-white/40 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
           
@@ -55,7 +120,10 @@ export default function UserManagementPage() {
             </div>
           </div>
 
-          <button className="group relative flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-8 py-4 text-white font-bold transition-all hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.2)] overflow-hidden z-10">
+          <button 
+            onClick={() => handleOpenModal("add")}
+            className="group relative flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-8 py-4 text-white font-bold transition-all hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.2)] overflow-hidden z-10"
+          >
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <span className="relative z-10 flex items-center gap-2">
               <UserPlus className="w-5 h-5" /> 
@@ -76,7 +144,7 @@ export default function UserManagementPage() {
                 <Users className="w-8 h-8 text-blue-200 mb-6" />
                 <div>
                   <span className="block text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Network Population</span>
-                  <span className="block text-5xl font-black tracking-tighter">5</span>
+                  <span className="block text-5xl font-black tracking-tighter">{usersList.length}</span>
                 </div>
               </div>
 
@@ -84,14 +152,18 @@ export default function UserManagementPage() {
               <div className="bg-white/50 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] hover:bg-white/70 transition-colors">
                 <CheckCircle2 className="w-7 h-7 text-emerald-500 mb-4" />
                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Live Nodes</span>
-                <span className="block text-3xl font-black text-slate-800">4</span>
+                <span className="block text-3xl font-black text-slate-800">
+                  {usersList.filter(u => u.status === "Active").length}
+                </span>
               </div>
 
               {/* Stat Card 3 */}
               <div className="bg-white/50 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] hover:bg-white/70 transition-colors">
                 <Mail className="w-7 h-7 text-amber-500 mb-4" />
                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Links</span>
-                <span className="block text-3xl font-black text-slate-800">1</span>
+                <span className="block text-3xl font-black text-slate-800">
+                  {usersList.filter(u => u.status !== "Active").length}
+                </span>
               </div>
 
             </div>
@@ -110,7 +182,7 @@ export default function UserManagementPage() {
                   placeholder="Search personnel..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-transparent bg-white/50 text-sm font-medium focus:outline-none focus:bg-white focus:border-indigo-100 focus:shadow-[0_0_20px_rgba(79,70,229,0.1)] transition-all"
+                  className="w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-transparent bg-white/50 text-sm font-medium text-slate-900 focus:outline-none focus:bg-white focus:border-indigo-100 focus:shadow-[0_0_20px_rgba(79,70,229,0.1)] transition-all"
                 />
               </div>
 
@@ -139,7 +211,6 @@ export default function UserManagementPage() {
                   className="group relative bg-white/40 backdrop-blur-lg border border-white/80 rounded-3xl p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:bg-white/80 transition-all duration-300 hover:shadow-[0_15px_35px_rgba(0,0,0,0.05)] hover:-translate-y-1 cursor-default"
                 >
                   
-                  {/* Glowing left accent border hidden by default, visible on hover */}
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-0 bg-indigo-500 rounded-r-full group-hover:h-12 transition-all duration-300" />
 
                   <div className="flex items-center gap-5 w-full md:w-auto">
@@ -180,9 +251,22 @@ export default function UserManagementPage() {
                       </span>
                     </div>
 
-                    <button className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:bg-white hover:text-indigo-600 hover:shadow-sm border border-transparent hover:border-slate-200 transition-all">
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => handleOpenModal("edit", user)}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all"
+                        title="Edit User"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                 </div>
@@ -201,8 +285,105 @@ export default function UserManagementPage() {
 
           </div>
         </div>
-
       </div>
+
+      {/* MODAL DIALOG */}
+      {modalMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-lg font-bold text-slate-900">
+                {modalMode === "add" ? "Deploy New User" : "Edit User Profile"}
+              </h3>
+              <button 
+                onClick={handleCloseModal}
+                className="w-8 h-8 rounded-full bg-slate-200/60 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveUser} className="p-8 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">User ID</label>
+                <input 
+                  type="text" 
+                  value={formData.id} 
+                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
+                <input 
+                  type="text" 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter full name"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Address</label>
+                <input 
+                  type="email" 
+                  value={formData.email} 
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="name@blackzero.org"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Role / Access Level</label>
+                <select 
+                  value={formData.role} 
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                >
+                  <option value="Super Admin">Super Admin</option>
+                  <option value="System Admin">System Admin</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Sales Agent">Sales Agent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+                <select 
+                  value={formData.status} 
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Invite Pending">Invite Pending</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={handleCloseModal}
+                  className="px-5 py-2.5 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+                >
+                  Save User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

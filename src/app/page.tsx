@@ -20,7 +20,7 @@ export default function DashboardPage() {
   ];
 
   const navigationModules = [
-    { name: "Inventory Hub", desc: "Manage items, variants, and BOM recipes", href: "/inventory", icon: <Package className="w-6 h-6" />, badge: "Active", theme: { bg: "bg-blue-50", border: "border-blue-200/60", text: "text-blue-900", desc: "text-blue-600/80", iconBg: "bg-blue-100 text-blue-700", badgeBg: "bg-blue-200/50 text-blue-800" } },
+    { name: "Inventory Hub", desc: "Manage EV frames, parts, and BOM recipes", href: "/inventory", icon: <Package className="w-6 h-6" />, badge: "Active", theme: { bg: "bg-blue-50", border: "border-blue-200/60", text: "text-blue-900", desc: "text-blue-600/80", iconBg: "bg-blue-100 text-blue-700", badgeBg: "bg-blue-200/50 text-blue-800" } },
     { name: "Purchase Workflow", desc: "Demand notes, PO approval, IGP & GRN", href: "/purchase-workflow", icon: <ClipboardList className="w-6 h-6" />, badge: "Governed", theme: { bg: "bg-purple-50", border: "border-purple-200/60", text: "text-purple-900", desc: "text-purple-600/80", iconBg: "bg-purple-100 text-purple-700", badgeBg: "bg-purple-200/50 text-purple-800" } },
     { name: "Sales Terminal", desc: "Process sales against verified PO/SO", href: "/sales", icon: <TrendingUp className="w-6 h-6" />, badge: "Terminal", theme: { bg: "bg-emerald-50", border: "border-emerald-200/60", text: "text-emerald-900", desc: "text-emerald-600/80", iconBg: "bg-emerald-100 text-emerald-700", badgeBg: "bg-emerald-200/50 text-emerald-800" } },
     { name: "Chart of Accounts", desc: "Financial ledger and accounting routes", href: "/accounts", icon: <Landmark className="w-6 h-6" />, badge: "Ledger", theme: { bg: "bg-amber-50", border: "border-amber-200/60", text: "text-amber-900", desc: "text-amber-700/80", iconBg: "bg-amber-100 text-amber-700", badgeBg: "bg-amber-200/50 text-amber-800" } },
@@ -52,9 +52,9 @@ export default function DashboardPage() {
   ];
 
   const inventoryStockData = [
-    { category: "Raw Materials", units: 8500 },
-    { category: "WIP", units: 3200 },
-    { category: "Finished Goods", units: 3782 },
+    { category: "Sheet Steel", units: 8500 },
+    { category: "WIP Frames", units: 3200 },
+    { category: "Finished Parts", units: 3782 },
     { category: "Packaging", units: 1500 },
   ];
 
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             Executive Dashboard
           </h1>
           <p className="text-black text-sm mt-1">
-            Real-time operational overview, financial analytics, and system-wide workflow tracking.
+            Real-time operational overview, financial analytics, and system-wide workflow tracking for COVICO Engineering.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -155,7 +155,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/60 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col">
           <div>
             <h2 className="text-lg font-bold text-black">Workforce Status</h2>
-            <p className="text-xs text-black mt-1">Today's HR Activity</p>
+            <p className="text-xs text-black mt-1">Daily Workforce Activity</p>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -211,7 +211,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-lg font-bold text-black">Inventory Hub Distribution</h2>
-              <p className="text-xs text-black mt-1">Stock levels across asset categories</p>
+              <p className="text-xs text-black mt-1">Stock levels across EV frame and part categories</p>
             </div>
             <div className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">
               Total: 16,982
@@ -288,7 +288,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-lg font-bold text-black">Production Yield (BOM)</h2>
-              <p className="text-xs text-black mt-1">Weekly target vs actual finished goods.</p>
+              <p className="text-xs text-black mt-1">Weekly target vs actual EV frame assembly yield.</p>
             </div>
             <div className="px-3 py-1 bg-[#eab308]/10 text-[#eab308] text-xs font-bold rounded-lg border border-[#eab308]/20">
               Efficiency: 92%
@@ -355,7 +355,7 @@ export default function DashboardPage() {
       <section className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-black">Enterprise Modules</h2>
-          <span className="text-xs font-semibold text-black uppercase tracking-wider">Click any card to launch module</span>
+          <span className="text-xs font-semibold text-black uppercase tracking-wider">Select any card to launch module</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
