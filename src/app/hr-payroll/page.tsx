@@ -31,7 +31,7 @@ export default function HrPayrollModule() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans relative z-0">
+    <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans w-full">
       
       {/* Abstract Background Enhancements */}
       <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50/50 to-transparent -z-10 pointer-events-none" />

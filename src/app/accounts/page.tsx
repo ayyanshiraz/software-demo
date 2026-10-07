@@ -15,7 +15,7 @@ export default function AccountsCommandCenter() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans relative z-0">
+    <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans w-full">
       {/* Decorative Background Elements */}
       <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-slate-200/50 to-transparent -z-10 pointer-events-none" />
       <div className="fixed -top-40 -right-40 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl -z-10 pointer-events-none" />

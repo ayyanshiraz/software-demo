@@ -34,7 +34,7 @@ export default function ProductionBOMPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7F9] p-6 md:p-12 font-sans relative z-0">
+    <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F4F7F9] p-6 md:p-12 font-sans w-full">
       <div className="fixed top-0 right-0 w-[35rem] h-[35rem] bg-gradient-to-bl from-purple-100/50 via-blue-50/20 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto space-y-10">

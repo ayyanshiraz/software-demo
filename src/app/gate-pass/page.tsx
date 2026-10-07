@@ -22,7 +22,7 @@ export default function GatePassModule() {
     : gatePassRecords.filter(record => record.type === reportFilter);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans relative z-0">
+    <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans w-full">
       
       {/* Abstract Background Enhancements */}
       <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-50/50 to-transparent -z-10 pointer-events-none" />
@@ -104,7 +104,7 @@ export default function GatePassModule() {
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${selectedType === "Official Use" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400"}`}>
-                        🏢
+                        召
                       </div>
                       <h3 className={`text-base font-bold ${selectedType === "Official Use" ? "text-indigo-900" : "text-slate-700"}`}>Official Use</h3>
                       <p className="text-xs text-slate-500 mt-1">Company meetings, site visits, or client deliveries.</p>
@@ -119,7 +119,7 @@ export default function GatePassModule() {
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${selectedType === "Personal Use" ? "bg-rose-500 text-white" : "bg-slate-100 text-slate-400"}`}>
-                        👤
+                        側
                       </div>
                       <h3 className={`text-base font-bold ${selectedType === "Personal Use" ? "text-rose-900" : "text-slate-700"}`}>Personal Use</h3>
                       <p className="text-xs text-slate-500 mt-1">Personal breaks, doctor visits, or emergencies.</p>
@@ -206,7 +206,7 @@ export default function GatePassModule() {
                         </td>
                         <td className="p-4">
                           <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 ${record.typeColor}`}>
-                            {record.type === "Official Use" ? "🏢" : "👤"} {record.type}
+                            {record.type === "Official Use" ? "召" : "側"} {record.type}
                           </span>
                         </td>
                         <td className="p-4 text-sm font-bold text-slate-700">{record.outTime}</td>
