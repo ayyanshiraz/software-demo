@@ -5,24 +5,15 @@ import React, { useState } from "react";
 import { 
   Users, UserPlus, Shield, Search, Key, Mail, CheckCircle2, Edit2, Trash2 
 } from "lucide-react";
+import { useErp, UserRecord } from "../../context/ErpContext";
 
 export default function UserManagementPage() {
+  const { users: usersList, setUsers: setUsersList } = useErp();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
-  const initialUsers = [
-    { id: "USR-001", name: "Yasir Irshad", email: "yasir@blackzero.org", role: "Super Admin", status: "Active", lastLogin: "2 mins ago", initials: "YI", color: "bg-purple-100 text-purple-700 border-purple-200" },
-    { id: "USR-002", name: "Ayyan Shiraz", email: "ayyan@blackzero.org", role: "System Admin", status: "Active", lastLogin: "1 hour ago", initials: "AS", color: "bg-blue-100 text-blue-700 border-blue-200" },
-    { id: "USR-003", name: "Ajwa Arshad", email: "ajwa@blackzero.org", role: "System Admin", status: "Active", lastLogin: "Just now", initials: "AA", color: "bg-blue-100 text-blue-700 border-blue-200" },
-    { id: "USR-004", name: "Alishba Zia", email: "alishba@blackzero.org", role: "Manager", status: "Active", lastLogin: "5 hours ago", initials: "AZ", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-    { id: "USR-005", name: "Usman Asif", email: "usman@blackzero.org", role: "Sales Agent", status: "Invite Pending", lastLogin: "Never", initials: "UA", color: "bg-amber-100 text-amber-700 border-amber-200" }
-  ];
-
-  const [usersList, setUsersList] = useState(initialUsers);
-
-  // Modal & Form State
   const [modalMode, setModalMode] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -40,7 +31,7 @@ export default function UserManagementPage() {
     (user.name.toLowerCase().includes(searchQuery.toLowerCase()) || user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleOpenModal = (mode: string, user: any = null) => {
+  const handleOpenModal = (mode: string, user: UserRecord | null = null) => {
     setModalMode(mode);
     setSelectedUser(user);
     if (user) {
@@ -76,11 +67,11 @@ export default function UserManagementPage() {
     else if (formData.role === "Manager") color = "bg-emerald-100 text-emerald-700 border-emerald-200";
     else if (formData.role === "Sales Agent") color = "bg-amber-100 text-amber-700 border-amber-200";
 
-    const userData = { ...formData, initials, color };
+    const userData: UserRecord = { ...formData, initials, color };
 
     if (modalMode === "add") {
       setUsersList([userData, ...usersList]);
-    } else if (modalMode === "edit") {
+    } else if (modalMode === "edit" && selectedUser) {
       setUsersList(usersList.map(u => u.id === selectedUser.id ? userData : u));
     }
     handleCloseModal();
@@ -93,13 +84,11 @@ export default function UserManagementPage() {
   return (
     <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-hidden min-h-screen bg-[#f8fafc] text-slate-800 p-4 md:p-8 w-full font-sans">
       
-      {/* Immersive Animated Background Mesh */}
       <div className="fixed top-[-10%] left-[-10%] w-[50rem] h-[50rem] bg-gradient-to-br from-indigo-200/40 via-purple-100/30 to-transparent rounded-full blur-3xl -z-10 mix-blend-multiply animate-[pulse_10s_ease-in-out_infinite]" />
       <div className="fixed bottom-[-10%] right-[-10%] w-[60rem] h-[60rem] bg-gradient-to-tl from-emerald-100/40 via-blue-100/30 to-transparent rounded-full blur-3xl -z-10 mix-blend-multiply" />
       
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* HEADER SECTION */}
         <header className="relative bg-white/40 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
           
@@ -122,7 +111,7 @@ export default function UserManagementPage() {
 
           <button 
             onClick={() => handleOpenModal("add")}
-            className="group relative flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-8 py-4 text-white font-bold transition-all hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.2)] overflow-hidden z-10"
+            className="group relative flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-8 py-4 text-white font-bold transition-all hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.2)] overflow-hidden z-10 cursor-pointer"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <span className="relative z-10 flex items-center gap-2">
@@ -134,11 +123,9 @@ export default function UserManagementPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* LEFT COLUMN: STATS BENTO BOX */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div className="grid grid-cols-2 gap-4 lg:flex lg:flex-col lg:gap-6">
               
-              {/* Stat Card 1 */}
               <div className="col-span-2 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-6 shadow-xl text-white relative overflow-hidden group">
                 <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors duration-500" />
                 <Users className="w-8 h-8 text-blue-200 mb-6" />
@@ -148,7 +135,6 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              {/* Stat Card 2 */}
               <div className="bg-white/50 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] hover:bg-white/70 transition-colors">
                 <CheckCircle2 className="w-7 h-7 text-emerald-500 mb-4" />
                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Live Nodes</span>
@@ -157,7 +143,6 @@ export default function UserManagementPage() {
                 </span>
               </div>
 
-              {/* Stat Card 3 */}
               <div className="bg-white/50 backdrop-blur-xl border border-white/80 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] hover:bg-white/70 transition-colors">
                 <Mail className="w-7 h-7 text-amber-500 mb-4" />
                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending Links</span>
@@ -169,10 +154,8 @@ export default function UserManagementPage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: INTERACTIVE LIST */}
           <div className="lg:col-span-8 flex flex-col gap-6">
             
-            {/* Floating Filter Bar */}
             <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.03)] flex flex-col xl:flex-row gap-4 items-center justify-between">
               
               <div className="relative w-full xl:w-80 group">
@@ -191,7 +174,7 @@ export default function UserManagementPage() {
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wide transition-all duration-300 ${
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black tracking-wide transition-all duration-300 cursor-pointer ${
                       activeFilter === filter 
                       ? "bg-white text-indigo-600 shadow-sm border border-white/80 scale-105" 
                       : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
@@ -203,7 +186,6 @@ export default function UserManagementPage() {
               </div>
             </div>
 
-            {/* Levitating List Items */}
             <div className="space-y-4">
               {filteredUsers.map((user) => (
                 <div 
@@ -254,14 +236,14 @@ export default function UserManagementPage() {
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={() => handleOpenModal("edit", user)}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all cursor-pointer"
                         title="Edit User"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDeleteUser(user.id)}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all cursor-pointer"
                         title="Delete User"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -287,7 +269,6 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* MODAL DIALOG */}
       {modalMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -297,7 +278,7 @@ export default function UserManagementPage() {
               </h3>
               <button 
                 onClick={handleCloseModal}
-                className="w-8 h-8 rounded-full bg-slate-200/60 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
+                className="w-8 h-8 rounded-full bg-slate-200/60 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -368,13 +349,13 @@ export default function UserManagementPage() {
                 <button 
                   type="button" 
                   onClick={handleCloseModal}
-                  className="px-5 py-2.5 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                  className="px-5 py-2.5 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors cursor-pointer"
                 >
                   Save User
                 </button>

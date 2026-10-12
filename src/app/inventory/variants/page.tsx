@@ -1,15 +1,11 @@
 // src/app/inventory/variants/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useErp, InventoryItem } from "../../../context/ErpContext";
 
 export default function VariantsPage() {
-  const [inventory, setInventory] = useState([
-    { id: 1, product: "EV Scooty Main Frame", sku: "EV-FRM-01", size: "10 Kgs", stock: 45, status: "In Stock", color: "bg-emerald-50 text-emerald-600" },
-    { id: 2, product: "Swing Arm Assembly", sku: "EV-SWA-02", size: "25 Kgs", stock: 12, status: "Low Stock", color: "bg-amber-50 text-amber-600" },
-    { id: 3, product: "Sheet Metal Stamping Part", sku: "SMS-PTS-03", size: "5 Feet", stock: 120, status: "In Stock", color: "bg-emerald-50 text-emerald-600" },
-    { id: 4, product: "Precision Auto Component", sku: "PAC-AUT-04", size: "10 Feet", stock: 0, status: "Out of Stock", color: "bg-rose-50 text-rose-600" }
-  ]);
+  const { inventory, addInventoryItem, updateInventoryStock, deleteInventoryItem } = useErp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -19,27 +15,8 @@ export default function VariantsPage() {
   const [formSku, setFormSku] = useState("");
   const [formStock, setFormStock] = useState("");
 
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [updatedStock, setUpdatedStock] = useState("");
-
-  useEffect(() => {
-    const savedList = localStorage.getItem("covico_inventory_covico_v3");
-    if (savedList) {
-      try {
-        const parsed = JSON.parse(savedList);
-        if (parsed.length > 0) {
-          setInventory(parsed);
-        }
-      } catch (err) {
-        console.error("Failed to load inventory list", err);
-      }
-    }
-  }, []);
-
-  const saveAndSetInventory = (newList: any[]) => {
-    setInventory(newList);
-    localStorage.setItem("covico_inventory_covico_v3", JSON.stringify(newList));
-  };
 
   const handleAddVariant = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,21 +26,20 @@ export default function VariantsPage() {
     }
 
     const stockNum = Number(formStock) || 0;
-    const statusText = stockNum > 0 ? (stockNum < 15 ? "Low Stock" : "In Stock") : "Out of Stock";
-    const statusColor = stockNum > 0 ? (stockNum < 15 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600") : "bg-rose-50 text-rose-600";
+    const generatedSku = formSku.trim() || `SKU-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const newRecord = {
-      id: Date.now(),
-      product: formProduct,
-      sku: formSku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
-      size: formSize,
+    addInventoryItem({
+      product: formProduct.trim(),
+      sku: generatedSku,
+      size: formSize.trim(),
       stock: stockNum,
-      status: statusText,
-      color: statusColor
-    };
-
-    const updated = [newRecord, ...inventory];
-    saveAndSetInventory(updated);
+      ledgerRoute: "1010 - Inventory Asset",
+      cogsRoute: "5010 - COGS Raw",
+      directSale: true,
+      productionConsumption: true,
+      category: "Finished Product",
+      unitPrice: 400
+    });
 
     setIsModalOpen(false);
     setFormProduct("");
@@ -73,11 +49,10 @@ export default function VariantsPage() {
   };
 
   const handleDelete = (id: number) => {
-    const filtered = inventory.filter(item => item.id !== id);
-    saveAndSetInventory(filtered);
+    deleteInventoryItem(id);
   };
 
-  const openUpdateModal = (item: any) => {
+  const openUpdateModal = (item: InventoryItem) => {
     setSelectedItem(item);
     setUpdatedStock(item.stock.toString());
     setIsUpdateModalOpen(true);
@@ -88,17 +63,7 @@ export default function VariantsPage() {
     if (!selectedItem) return;
 
     const num = Number(updatedStock) || 0;
-    const statusText = num > 0 ? (num < 15 ? "Low Stock" : "In Stock") : "Out of Stock";
-    const statusColor = num > 0 ? (num < 15 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600") : "bg-rose-50 text-rose-600";
-
-    const updatedList = inventory.map(item => {
-      if (item.id === selectedItem.id) {
-        return { ...item, stock: num, status: statusText, color: statusColor };
-      }
-      return item;
-    });
-
-    saveAndSetInventory(updatedList);
+    updateInventoryStock(selectedItem.id, num);
     setIsUpdateModalOpen(false);
     setSelectedItem(null);
   };

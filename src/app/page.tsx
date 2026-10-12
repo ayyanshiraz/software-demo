@@ -10,13 +10,21 @@ import {
 import { 
   Package, ClipboardList, TrendingUp, Users, Landmark, Key 
 } from "lucide-react";
+import { useErp } from "../context/ErpContext";
 
 export default function DashboardPage() {
+  const { inventory, ledgerEvents, recognizedRevenue, employees, gatePasses } = useErp();
+
+  const totalInventoryUnits = inventory.reduce((sum, item) => sum + item.stock, 0);
+  const officialCount = gatePasses.filter(g => g.type === "Official Use").length;
+  const personalCount = gatePasses.filter(g => g.type === "Personal Use").length;
+  const totalPasses = Math.max(1, officialCount + personalCount);
+
   const kpiStats = [
-    { label: "Total Inventory Items", value: "15,482", change: "+12%", icon: <Package className="w-6 h-6" />, color: "bg-blue-50 text-blue-600" },
-    { label: "Active Purchase Orders", value: "142", change: "Requires Review", icon: <ClipboardList className="w-6 h-6" />, color: "bg-purple-50 text-purple-600" },
-    { label: "Monthly Sales Revenue", value: "PKR 45,231", change: "+8.4%", icon: <TrendingUp className="w-6 h-6" />, color: "bg-emerald-50 text-emerald-600" },
-    { label: "Active Employees", value: "84", change: "On Duty", icon: <Users className="w-6 h-6" />, color: "bg-cyan-50 text-cyan-600" }
+    { label: "Total Inventory Items", value: totalInventoryUnits.toLocaleString(), change: `${inventory.length} Active SKUs`, icon: <Package className="w-6 h-6" />, color: "bg-blue-50 text-blue-600" },
+    { label: "Active Ledger Events", value: ledgerEvents.length.toString(), change: "Live Synced", icon: <ClipboardList className="w-6 h-6" />, color: "bg-purple-50 text-purple-600" },
+    { label: "Monthly Sales Revenue", value: `PKR ${recognizedRevenue.toLocaleString()}`, change: "+8.4%", icon: <TrendingUp className="w-6 h-6" />, color: "bg-emerald-50 text-emerald-600" },
+    { label: "Active Employees", value: employees.length.toString(), change: "On Duty", icon: <Users className="w-6 h-6" />, color: "bg-cyan-50 text-cyan-600" }
   ];
 
   const navigationModules = [
@@ -34,13 +42,13 @@ export default function DashboardPage() {
     { month: "Mar", sales: 35000, purchases: 20000 },
     { month: "Apr", sales: 29000, purchases: 16000 },
     { month: "May", sales: 41000, purchases: 22000 },
-    { month: "Jun", sales: 45231, purchases: 25000 }
+    { month: "Jun", sales: Math.max(45231, recognizedRevenue - 300000), purchases: 25000 }
   ];
 
   const hrAttendanceData = [
-    { name: "Present", value: 72, color: "#06b6d4" },
-    { name: "On Leave", value: 8, color: "#a855f7" },
-    { name: "Absent", value: 4, color: "#f43f5e" }
+    { name: "Present", value: Math.max(1, employees.filter(e => e.status === "Active").length), color: "#06b6d4" },
+    { name: "On Leave", value: Math.max(1, employees.filter(e => e.status === "On Leave").length), color: "#a855f7" },
+    { name: "Absent", value: 1, color: "#f43f5e" }
   ];
 
   const productionData = [
@@ -51,18 +59,16 @@ export default function DashboardPage() {
     { day: "Fri", target: 150, yielded: 145 },
   ];
 
-  const inventoryStockData = [
-    { category: "Sheet Steel", units: 8500 },
-    { category: "WIP Frames", units: 3200 },
-    { category: "Finished Parts", units: 3782 },
-    { category: "Packaging", units: 1500 },
-  ];
+  const inventoryStockData = inventory.slice(0, 5).map(item => ({
+    category: item.sku,
+    units: item.stock
+  }));
 
   const purchasePipelineData = [
     { stage: "Demand Notes", count: 42 },
     { stage: "Pending POs", count: 28 },
     { stage: "Dispatched", count: 18 },
-    { stage: "GRN Logged", count: 54 },
+    { stage: "GRN Logged", count: 53 + ledgerEvents.filter(e => e.type === "GRN").length },
   ];
 
   const accountsData = [
@@ -73,8 +79,8 @@ export default function DashboardPage() {
   ];
 
   const gatePassData = [
-    { name: "Official Use", value: 82, color: "#3b82f6" },
-    { name: "Personal Use", value: 18, color: "#f43f5e" } 
+    { name: "Official Use", value: Math.round((officialCount / totalPasses) * 100), color: "#3b82f6" },
+    { name: "Personal Use", value: Math.round((personalCount / totalPasses) * 100), color: "#f43f5e" } 
   ];
 
   return (
@@ -214,7 +220,7 @@ export default function DashboardPage() {
               <p className="text-xs text-black mt-1">Stock levels across EV frame and part categories</p>
             </div>
             <div className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">
-              Total: 16,982
+              Total: {totalInventoryUnits.toLocaleString()}
             </div>
           </div>
           <div className="h-64 w-full">

@@ -3,13 +3,15 @@
 
 import React, { useState, useRef } from "react";
 import { Package, ClipboardList, TrendingUp } from "lucide-react";
+import { useErp } from "../../context/ErpContext";
 
 export default function InventorySalesPurchase() {
+  const { inventory, addInventoryItem, recognizedRevenue, ledgerEvents } = useErp();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [nomenclature, setNomenclature] = useState("");
-  const [itemCode, setItemCode] = useState("EV-FRM-01");
+  const [itemCode, setItemCode] = useState("EV-PART-1092");
   const [ledgerRoute, setLedgerRoute] = useState("");
   const [bomPrimary, setBomPrimary] = useState("");
   const [bomSecondary, setBomSecondary] = useState("");
@@ -23,10 +25,12 @@ export default function InventorySalesPurchase() {
   const [productionConsumption, setProductionConsumption] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const totalStockUnits = inventory.reduce((sum, item) => sum + item.stock, 0);
+
   const stats = [
-    { label: "Total Stock Items", value: "15,482", icon: <Package width="1em" height="1em" strokeWidth={2} />, color: "from-blue-500 to-blue-600", shadow: "shadow-blue-500/20" },
-    { label: "Pending Orders", value: "142", icon: <ClipboardList width="1em" height="1em" strokeWidth={2} />, color: "from-purple-500 to-purple-600", shadow: "shadow-purple-500/20" },
-    { label: "Monthly Revenue", value: "$45,231", icon: <TrendingUp width="1em" height="1em" strokeWidth={2} />, color: "from-emerald-500 to-emerald-600", shadow: "shadow-emerald-500/20" }
+    { label: "Total Stock Items", value: totalStockUnits.toLocaleString(), icon: <Package width="1em" height="1em" strokeWidth={2} />, color: "from-blue-500 to-blue-600", shadow: "shadow-blue-500/20" },
+    { label: "Active Ledger Logs", value: ledgerEvents.length.toString(), icon: <ClipboardList width="1em" height="1em" strokeWidth={2} />, color: "from-purple-500 to-purple-600", shadow: "shadow-purple-500/20" },
+    { label: "Recognized Revenue", value: `$${recognizedRevenue.toLocaleString()}`, icon: <TrendingUp width="1em" height="1em" strokeWidth={2} />, color: "from-emerald-500 to-emerald-600", shadow: "shadow-emerald-500/20" }
   ];
 
   const handleAutoGenerate = () => {
@@ -50,29 +54,41 @@ export default function InventorySalesPurchase() {
       return;
     }
 
-    const existingItems = JSON.parse(localStorage.getItem("covico_inventory_covico_v3") || "[]");
     const selectedUnits = Object.keys(variants).filter(k => variants[k as keyof typeof variants]);
     const unitStr = selectedUnits.length > 0 ? selectedUnits[0] : "Kgs";
-    const finalSize = measurementValue.trim() ? `${measurementValue} ${unitStr}` : unitStr;
-    
-    const newItem = {
-      id: Date.now(),
-      product: nomenclature,
-      sku: itemCode,
-      size: finalSize,
-      stock: 50,
-      status: "In Stock",
-      color: "bg-emerald-50 text-emerald-600",
-      ledgerRoute,
-      directSale,
-      productionConsumption
+    const finalSize = measurementValue.trim() ? `${measurementValue} ${unitStr}` : `10 ${unitStr}`;
+
+    const routeMap: Record<string, string> = {
+      "1001": "1010 - Inventory Asset",
+      "4001": "1020 - Finished Goods",
+      "5001": "1020 - Finished Goods",
+      "5002": "1010 - Inventory Asset"
     };
 
-    localStorage.setItem("covico_inventory_covico_v3", JSON.stringify([newItem, ...existingItems]));
+    const resolvedAssetRoute = routeMap[ledgerRoute] || "1010 - Inventory Asset";
+    const resolvedCogsRoute = ledgerRoute === "5001" ? "5020 - COGS Finished" : "5010 - COGS Raw";
 
-    setSuccessMessage(`Successfully deployed ${nomenclature} (${itemCode}) to the general ledger and variants hub!`);
+    addInventoryItem({
+      product: nomenclature.trim(),
+      sku: itemCode.trim() || `EV-PART-${Math.floor(1000 + Math.random() * 9000)}`,
+      size: finalSize,
+      stock: 50,
+      ledgerRoute: resolvedAssetRoute,
+      cogsRoute: resolvedCogsRoute,
+      directSale,
+      productionConsumption,
+      category: directSale && !productionConsumption ? "Raw Material" : "Finished Product",
+      unitPrice: 450,
+      bom: {
+        primary: bomPrimary,
+        secondary: bomSecondary,
+        aux: bomAux
+      }
+    });
+
+    setSuccessMessage(`Successfully deployed ${nomenclature} (${itemCode}) to Variants Hub, Chart of Accounts, Purchase Workflow, and Sales Terminal!`);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    
+
     setNomenclature("");
     handleAutoGenerate();
     setLedgerRoute("");
@@ -105,7 +121,7 @@ export default function InventorySalesPurchase() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-bold tracking-widest text-slate-700 uppercase">
-               COVICO Engineering (PVT) LTD
+                COVICO Engineering (PVT) LTD
               </span>
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
@@ -239,10 +255,11 @@ export default function InventorySalesPurchase() {
                         className="flex-1 bg-transparent text-sm font-medium text-slate-800 outline-none cursor-pointer appearance-none"
                       >
                         <option value="">Search and Attach Material...</option>
-                        <option value="RM-STEEL">Grade A Sheet Steel</option>
-                        <option value="RM-MOTOR">Electric Motor Assembly</option>
-                        <option value="RM-WIRE">Wiring Harness & Cables</option>
-                        <option value="RM-DIE">Stamping Die Component</option>
+                        {inventory.map((invItem) => (
+                          <option key={invItem.id} value={invItem.sku}>
+                            {invItem.sku} - {invItem.product} ({invItem.size})
+                          </option>
+                        ))}
                       </select>
                     </div>
                   ))}

@@ -2,44 +2,26 @@
 "use client";
 
 import React, { useState } from "react";
+import { useErp } from "../../context/ErpContext";
 
 export default function HrPayrollModule() {
-  const [activeTab, setActiveTab] = useState("Employees");
+  const {
+    employees: employeesData,
+    setEmployees: setEmployeesData,
+    attendance: attendanceData,
+    setAttendance: setAttendanceData,
+    salaries: salaryData,
+    setSalaries: setSalaryData,
+    loans: financialRecords,
+    setLoans: setFinancialRecords
+  } = useErp();
 
+  const [activeTab, setActiveTab] = useState("Employees");
   const tabs = ["Employees", "Attendance", "Payroll", "Loans & Advances"];
 
-  const initialEmployees = [
-    { id: "EMP-001", name: "Ali Khan", email: "ali@bizvibez.com", role: "Software Engineer", status: "Active", color: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" },
-    { id: "EMP-002", name: "Sara Ahmed", email: "sara@bizvibez.com", role: "HR Manager", status: "On Leave", color: "bg-amber-50 text-amber-600 ring-1 ring-amber-500/20" },
-    { id: "EMP-003", name: "Usman Asif", email: "usman@bizvibez.com", role: "Sales Lead", status: "Active", color: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" }
-  ];
-
-  const initialAttendance = [
-    { date: "2026-10-06", id: "EMP-001", name: "Ali Khan", timeIn: "09:00 AM", timeOut: "06:00 PM", status: "Present", color: "bg-blue-50 text-blue-600 ring-1 ring-blue-500/20" },
-    { date: "2026-10-06", id: "EMP-002", name: "Sara Ahmed", timeIn: "---", timeOut: "---", status: "Absent", color: "bg-rose-50 text-rose-600 ring-1 ring-rose-500/20" },
-    { date: "2026-10-06", id: "EMP-003", name: "Usman Asif", timeIn: "09:15 AM", timeOut: "Pending", status: "In Office", color: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" }
-  ];
-
-  const initialSalary = [
-    { id: "EMP-001", name: "Ali Khan", basic: "$2,000", allowances: "$500", deductions: "$600", net: "$1,900", status: "Pending", color: "bg-amber-50 text-amber-600 ring-1 ring-amber-500/20" },
-    { id: "EMP-002", name: "Sara Ahmed", basic: "$2,500", allowances: "$600", deductions: "$0", net: "$3,100", status: "Processed", color: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" }
-  ];
-
-  const initialFinancial = [
-    { id: "EMP-001", name: "Ali Khan", advanceAmt: "$500", advanceRec: "$100", loanAmt: "$5,000", installment: "$500", outstanding: "$3,000" },
-    { id: "EMP-003", name: "Usman Asif", advanceAmt: "$0", advanceRec: "$0", loanAmt: "$2,000", installment: "$200", outstanding: "$1,800" }
-  ];
-
-  const [employeesData, setEmployeesData] = useState(initialEmployees);
-  const [attendanceData, setAttendanceData] = useState(initialAttendance);
-  const [salaryData, setSalaryData] = useState(initialSalary);
-  const [financialRecords, setFinancialRecords] = useState(initialFinancial);
-
-  // Modal State
   const [modalMode, setModalMode] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -67,23 +49,23 @@ export default function HrPayrollModule() {
       setFormData({ ...formData, ...item });
     } else {
       setFormData({
-        id: "",
+        id: `EMP-00${employeesData.length + 1}`,
         name: "",
         email: "",
         role: "",
         status: "Active",
-        date: "",
-        timeIn: "",
-        timeOut: "",
-        basic: "",
-        allowances: "",
-        deductions: "",
-        net: "",
-        advanceAmt: "",
-        advanceRec: "",
-        loanAmt: "",
-        installment: "",
-        outstanding: ""
+        date: "2026-10-12",
+        timeIn: "09:00 AM",
+        timeOut: "06:00 PM",
+        basic: "$2,000",
+        allowances: "$500",
+        deductions: "$100",
+        net: "$2,400",
+        advanceAmt: "$0",
+        advanceRec: "$0",
+        loanAmt: "$2,000",
+        installment: "$200",
+        outstanding: "$2,000"
       });
     }
   };
@@ -97,23 +79,23 @@ export default function HrPayrollModule() {
     e.preventDefault();
     if (modalMode === "add-emp") {
       const color = formData.status === "Active" ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" : "bg-amber-50 text-amber-600 ring-1 ring-amber-500/20";
-      setEmployeesData([...employeesData, { ...formData, color }]);
+      setEmployeesData([...employeesData, { id: formData.id, name: formData.name, email: formData.email, role: formData.role, status: formData.status, color }]);
     } else if (modalMode === "edit-emp") {
-      setEmployeesData(employeesData.map(emp => emp.id === selectedItem.id ? { ...formData, color: emp.color } : emp));
+      setEmployeesData(employeesData.map(emp => emp.id === selectedItem.id ? { id: formData.id, name: formData.name, email: formData.email, role: formData.role, status: formData.status, color: emp.color } : emp));
     } else if (modalMode === "add-att") {
       const color = formData.status === "Present" || formData.status === "In Office" ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" : "bg-rose-50 text-rose-600 ring-1 ring-rose-500/20";
-      setAttendanceData([...attendanceData, { ...formData, color }]);
+      setAttendanceData([...attendanceData, { date: formData.date, id: formData.id, name: formData.name, timeIn: formData.timeIn, timeOut: formData.timeOut, status: formData.status, color }]);
     } else if (modalMode === "edit-att") {
-      setAttendanceData(attendanceData.map((att, idx) => idx === selectedItem.idx ? { ...formData, color: att.color } : att));
+      setAttendanceData(attendanceData.map((att, idx) => idx === selectedItem.idx ? { date: formData.date, id: formData.id, name: formData.name, timeIn: formData.timeIn, timeOut: formData.timeOut, status: formData.status, color: att.color } : att));
     } else if (modalMode === "add-sal") {
       const color = formData.status === "Processed" ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20" : "bg-amber-50 text-amber-600 ring-1 ring-amber-500/20";
-      setSalaryData([...salaryData, { ...formData, color }]);
+      setSalaryData([...salaryData, { id: formData.id, name: formData.name, basic: formData.basic, allowances: formData.allowances, deductions: formData.deductions, net: formData.net, status: formData.status, color }]);
     } else if (modalMode === "edit-sal") {
-      setSalaryData(salaryData.map(sal => sal.id === selectedItem.id ? { ...formData, color: sal.color } : sal));
+      setSalaryData(salaryData.map(sal => sal.id === selectedItem.id ? { id: formData.id, name: formData.name, basic: formData.basic, allowances: formData.allowances, deductions: formData.deductions, net: formData.net, status: formData.status, color: sal.color } : sal));
     } else if (modalMode === "add-loan") {
-      setFinancialRecords([...financialRecords, { ...formData }]);
+      setFinancialRecords([...financialRecords, { id: formData.id, name: formData.name, advanceAmt: formData.advanceAmt, advanceRec: formData.advanceRec, loanAmt: formData.loanAmt, installment: formData.installment, outstanding: formData.outstanding }]);
     } else if (modalMode === "edit-loan") {
-      setFinancialRecords(financialRecords.map(rec => rec.id === selectedItem.id ? { ...formData } : rec));
+      setFinancialRecords(financialRecords.map(rec => rec.id === selectedItem.id ? { id: formData.id, name: formData.name, advanceAmt: formData.advanceAmt, advanceRec: formData.advanceRec, loanAmt: formData.loanAmt, installment: formData.installment, outstanding: formData.outstanding } : rec));
     }
     handleCloseModal();
   };
@@ -137,13 +119,11 @@ export default function HrPayrollModule() {
   return (
     <div className="fixed md:relative inset-0 md:inset-auto z-40 md:z-0 overflow-y-auto md:overflow-visible min-h-screen bg-[#F8FAFC] p-6 md:p-10 font-sans w-full">
       
-      {/* Abstract Background Enhancements */}
       <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50/50 to-transparent -z-10 pointer-events-none" />
       <div className="fixed -top-40 -right-40 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl -z-10 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-10">
         
-        {/* ENHANCED HEADER */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
@@ -164,14 +144,13 @@ export default function HrPayrollModule() {
           </div>
         </header>
 
-        {/* APPLE-STYLE FLOATING TABS */}
         <div className="relative w-full overflow-x-auto pb-4 hide-scrollbar">
           <div className="inline-flex p-1.5 space-x-1 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-sm">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                className={`relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${
                   activeTab === tab
                     ? "text-indigo-600 shadow-sm"
                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
@@ -186,7 +165,6 @@ export default function HrPayrollModule() {
           </div>
         </div>
 
-        {/* ENHANCED CONTENT SECTIONS */}
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-[2rem] blur opacity-0 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
           
@@ -199,7 +177,7 @@ export default function HrPayrollModule() {
                 </div>
                 <button 
                   onClick={() => handleOpenModal("add-emp")}
-                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all"
+                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   + Register Employee
                 </button>
@@ -239,13 +217,13 @@ export default function HrPayrollModule() {
                         <td className="p-4 text-right space-x-2">
                           <button 
                             onClick={() => handleOpenModal("edit-emp", emp)}
-                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
                           <button 
                             onClick={() => handleDeleteEmployee(emp.id)}
-                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors"
+                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
                           >
                             Delete
                           </button>
@@ -268,7 +246,7 @@ export default function HrPayrollModule() {
                 <div className="flex gap-3">
                   <button 
                     onClick={() => handleOpenModal("add-att")}
-                    className="px-5 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold rounded-xl shadow-sm hover:bg-emerald-100 transition-colors"
+                    className="px-5 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold rounded-xl shadow-sm hover:bg-emerald-100 transition-colors cursor-pointer"
                   >
                     + Add Attendance
                   </button>
@@ -304,13 +282,13 @@ export default function HrPayrollModule() {
                         <td className="p-4 text-right space-x-2">
                           <button 
                             onClick={() => handleOpenModal("edit-att", { ...record, idx })}
-                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
                           <button 
                             onClick={() => handleDeleteAttendance(idx)}
-                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors"
+                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
                           >
                             Delete
                           </button>
@@ -332,7 +310,7 @@ export default function HrPayrollModule() {
                 </div>
                 <button 
                   onClick={() => handleOpenModal("add-sal")}
-                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all"
+                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   + Run Monthly Payroll
                 </button>
@@ -363,13 +341,13 @@ export default function HrPayrollModule() {
                         <td className="p-4 text-right space-x-2">
                           <button 
                             onClick={() => handleOpenModal("edit-sal", salary)}
-                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
                           <button 
                             onClick={() => handleDeleteSalary(salary.id)}
-                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors"
+                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
                           >
                             Delete
                           </button>
@@ -392,7 +370,7 @@ export default function HrPayrollModule() {
                 <div className="flex gap-3">
                   <button 
                     onClick={() => handleOpenModal("add-loan")}
-                    className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all"
+                    className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all cursor-pointer"
                   >
                     + Grant Loan / Advance
                   </button>
@@ -427,13 +405,13 @@ export default function HrPayrollModule() {
                         <td className="p-4 text-right space-x-2">
                           <button 
                             onClick={() => handleOpenModal("edit-loan", record)}
-                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                            className="px-3 py-1.5 text-indigo-600 bg-indigo-50 text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
                           <button 
                             onClick={() => handleDeleteLoan(record.id)}
-                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors"
+                            className="px-3 py-1.5 text-rose-600 bg-rose-50 text-xs font-bold rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
                           >
                             Delete
                           </button>
@@ -448,7 +426,6 @@ export default function HrPayrollModule() {
         </div>
       </div>
 
-      {/* MODAL DIALOG */}
       {modalMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -458,7 +435,7 @@ export default function HrPayrollModule() {
               </h3>
               <button 
                 onClick={handleCloseModal}
-                className="w-8 h-8 rounded-full bg-slate-200/60 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold"
+                className="w-8 h-8 rounded-full bg-slate-200/60 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -698,13 +675,13 @@ export default function HrPayrollModule() {
                 <button 
                   type="button" 
                   onClick={handleCloseModal}
-                  className="px-5 py-2.5 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                  className="px-5 py-2.5 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors"
+                  className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors cursor-pointer"
                 >
                   Save Record
                 </button>

@@ -2,22 +2,29 @@
 "use client";
 
 import React, { useState } from "react";
+import { useErp } from "../../context/ErpContext";
 
 export default function PurchaseWorkflow() {
+  const { inventory, executePurchaseGRN } = useErp();
+
   const [currentStep, setCurrentStep] = useState(1);
   const [department, setDepartment] = useState("");
-  const [selectedPart, setSelectedPart] = useState("EV-FRM-01: EV Scooty Main Frame");
+  const [selectedPart, setSelectedPart] = useState(
+    inventory.length > 0 ? `${inventory[0].sku}: ${inventory[0].product}` : "EV-FRM-01: EV Scooty Main Frame"
+  );
   const [requestedQty, setRequestedQty] = useState("50");
   const [poApproved, setPoApproved] = useState(false);
   const [receivedQty, setReceivedQty] = useState("");
   const [actualGrnValue, setActualGrnValue] = useState("");
 
-  const expectedPoValue = 12500;
+  const expectedPoValue = (Number(requestedQty) || 50) * 250;
   const isLedgerMismatch = actualGrnValue !== "" && Number(actualGrnValue) !== expectedPoValue;
 
   const handleGenerateDemandNote = () => {
     if (department.trim() !== "") {
       setCurrentStep(2);
+    } else {
+      alert("Please enter the Requesting Department.");
     }
   };
 
@@ -30,40 +37,40 @@ export default function PurchaseWorkflow() {
   const handleLogGatePass = () => {
     if (receivedQty !== "") {
       setCurrentStep(4);
+      setActualGrnValue(expectedPoValue.toString());
+    } else {
+      alert("Please enter Actual Received Qty.");
     }
   };
 
   const handleGenerateGRN = () => {
     if (actualGrnValue !== "") {
+      const parts = selectedPart.split(":");
+      const sku = parts[0] ? parts[0].trim() : "EV-PRD-01";
+      const productName = parts[1] ? parts[1].trim() : selectedPart;
+      const qtyNum = Number(receivedQty) || Number(requestedQty) || 50;
+      const billedNum = Number(actualGrnValue) || expectedPoValue;
+
+      executePurchaseGRN({
+        sku,
+        productName,
+        qty: qtyNum,
+        billedValue: billedNum,
+        expectedValue: expectedPoValue,
+        department: department.trim() || "Factory Floor"
+      });
+
       setCurrentStep(5);
-
-      // Sync purchased item into shared inventory/variants and ledger storage
-      try {
-        const existingItems = JSON.parse(localStorage.getItem("covico_inventory_covico_v3") || "[]");
-        const parts = selectedPart.split(":");
-        const sku = parts[0] ? parts[0].trim() : "EV-PRD-01";
-        const productName = parts[1] ? parts[1].trim() : selectedPart;
-        const qtyNum = Number(receivedQty) || Number(requestedQty) || 50;
-
-        const newItem = {
-          id: Date.now(),
-          product: productName,
-          sku: sku,
-          size: "Standard",
-          stock: qtyNum,
-          status: "In Stock",
-          color: "bg-emerald-50 text-emerald-600",
-          ledgerRoute: "1001",
-          directSale: true,
-          productionConsumption: true
-        };
-
-        const filtered = existingItems.filter((item: any) => item.sku !== sku);
-        localStorage.setItem("covico_inventory_covico_v3", JSON.stringify([newItem, ...filtered]));
-      } catch (err) {
-        console.error("Failed to sync purchase to inventory", err);
-      }
     }
+  };
+
+  const handleResetCycle = () => {
+    setCurrentStep(1);
+    setDepartment("");
+    setRequestedQty("50");
+    setPoApproved(false);
+    setReceivedQty("");
+    setActualGrnValue("");
   };
 
   const getSidebarCardClass = (stepNum: number) => {
@@ -90,7 +97,7 @@ export default function PurchaseWorkflow() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-bold tracking-widest text-slate-700 uppercase">
-               COVICO Engineering (PVT) LTD
+                COVICO Engineering (PVT) LTD
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
@@ -172,11 +179,11 @@ export default function PurchaseWorkflow() {
                         onChange={(e) => setSelectedPart(e.target.value)}
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500 font-semibold cursor-pointer"
                       >
-                        <option value="EV-FRM-01: EV Scooty Main Frame">EV-FRM-01: EV Scooty Main Frame</option>
-                        <option value="EV-SWA-02: Swing Arm Assembly">EV-SWA-02: Swing Arm Assembly</option>
-                        <option value="RM-STEEL: Grade A Sheet Steel">RM-STEEL: Grade A Sheet Steel (Kgs)</option>
-                        <option value="RM-MOTOR: Electric Motor Assembly">RM-MOTOR: Electric Motor Assembly</option>
-                        <option value="SMS-PTS-03: Sheet Metal Stamping">SMS-PTS-03: Sheet Metal Stamping</option>
+                        {inventory.map((item) => (
+                          <option key={item.id} value={`${item.sku}: ${item.product}`}>
+                            {item.sku}: {item.product} (Stock: {item.stock})
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -215,7 +222,7 @@ export default function PurchaseWorkflow() {
                     </div>
                     <div className="text-right">
                       <span className="block text-xs font-bold text-indigo-600 uppercase">Part & Qty</span>
-                      <span className="text-sm font-black text-slate-800">{requestedQty} Units</span>
+                      <span className="text-sm font-black text-slate-800">{requestedQty} Units (${expectedPoValue.toLocaleString()})</span>
                     </div>
                   </div>
                   
@@ -338,8 +345,8 @@ export default function PurchaseWorkflow() {
                   <span className="text-white text-4xl">✓</span>
                 </div>
                 <h2 className="text-3xl font-bold text-emerald-900 mb-2">Workflow Complete</h2>
-                <p className="text-emerald-700 font-medium">The procurement cycle for {selectedPart} has been successfully logged and processed into inventory.</p>
-                <button onClick={() => window.location.reload()} className="mt-8 px-8 py-3 rounded-xl bg-white text-emerald-700 font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer">
+                <p className="text-emerald-700 font-medium">The procurement cycle for {selectedPart} (+{receivedQty || requestedQty} Units) has been logged into Inventory Variants and synced to the Chart of Accounts.</p>
+                <button onClick={handleResetCycle} className="mt-8 px-8 py-3 rounded-xl bg-white text-emerald-700 font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer">
                   Start New Procurement Cycle
                 </button>
               </div>

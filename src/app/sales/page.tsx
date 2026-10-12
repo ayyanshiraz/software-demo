@@ -2,8 +2,11 @@
 "use client";
 
 import React, { useState } from "react";
+import { useErp } from "../../context/ErpContext";
 
 export default function SalesPipeline() {
+  const { inventory, executeSaleTransaction } = useErp();
+
   const [orderReference, setOrderReference] = useState("");
   const [isOrderValidated, setIsOrderValidated] = useState(false);
   const [productCategory, setProductCategory] = useState("Finished Product");
@@ -12,9 +15,18 @@ export default function SalesPipeline() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionComplete, setTransactionComplete] = useState(false);
 
+  const handleAutoGenerateOrderRef = () => {
+    const prefixes = ["SO", "CUST-PO", "EV-ORD"];
+    const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    setOrderReference(`${randomPrefix}-${randomNum}`);
+  };
+
   const handleValidateOrder = () => {
     if (orderReference.trim() !== "") {
       setIsOrderValidated(true);
+    } else {
+      alert("Please enter or auto-generate an Order Reference first.");
     }
   };
 
@@ -22,53 +34,15 @@ export default function SalesPipeline() {
     if (isOrderValidated && selectedItem !== "" && quantity !== "") {
       setIsProcessing(true);
       setTimeout(() => {
+        const qtyNum = Number(quantity) || 10;
+        executeSaleTransaction({
+          orderRef: orderReference.trim(),
+          skuOrName: selectedItem,
+          qty: qtyNum
+        });
         setIsProcessing(false);
         setTransactionComplete(true);
-
-        const qtyNum = Number(quantity) || 10;
-        const totalValue = qtyNum * 450;
-
-        // 1. Inventory & Variants Hub Sync (Deducts stock & updates status)
-        try {
-          const savedItems = localStorage.getItem("covico_inventory_covico_v3");
-          if (savedItems) {
-            const parsed = JSON.parse(savedItems);
-            const updated = parsed.map((item: any) => {
-              if (selectedItem.includes(item.product) || selectedItem.includes(item.sku)) {
-                const newStock = Math.max(0, item.stock - qtyNum);
-                return {
-                  ...item,
-                  stock: newStock,
-                  status: newStock > 0 ? (newStock < 15 ? "Low Stock" : "In Stock") : "Out of Stock",
-                  color: newStock > 0 ? (newStock < 15 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600") : "bg-rose-50 text-rose-600"
-                };
-              }
-              return item;
-            });
-            localStorage.setItem("covico_inventory_covico_v3", JSON.stringify(updated));
-          }
-        } catch (err) {
-          console.error("Failed to sync sales deduction", err);
-        }
-
-        // 2. Chart of Accounts Ledger Sync (Records double-entry: Dr. Accounts Receivable 1200, Cr. Sales Revenue 4010)
-        try {
-          const salesEvents = JSON.parse(localStorage.getItem("covico_sales_ledger_events") || "[]");
-          const newEvent = {
-            id: Date.now(),
-            ref: orderReference,
-            item: selectedItem,
-            qty: qtyNum,
-            debitAccount: "1200 - Accounts Receivable",
-            creditAccount: "4010 - Sales Revenue",
-            amount: totalValue,
-            timestamp: new Date().toISOString()
-          };
-          localStorage.setItem("covico_sales_ledger_events", JSON.stringify([newEvent, ...salesEvents]));
-        } catch (e) {
-          console.error("Failed to log sales ledger event", e);
-        }
-      }, 1500);
+      }, 900);
     }
   };
 
@@ -81,17 +55,13 @@ export default function SalesPipeline() {
     setTransactionComplete(false);
   };
 
-  const finishedProducts = [
-    "EV-FRM-01: EV Scooty Main Frame",
-    "EV-SWA-02: Swing Arm Assembly",
-    "PAC-AUT-04: Precision Auto Component"
-  ];
-  
-  const rawMaterials = [
-    "RM-STEEL: Grade A Sheet Steel (Direct Sale)",
-    "RM-MOTOR: Electric Motor Assembly (Direct Sale)",
-    "RM-TUBE: Steel Tubing Structure (Direct Sale)"
-  ];
+  const finishedProducts = inventory
+    .filter((i) => i.category === "Finished Product" || !i.sku.startsWith("RM-"))
+    .map((i) => `${i.sku}: ${i.product} (Stock: ${i.stock})`);
+
+  const rawMaterials = inventory
+    .filter((i) => i.category === "Raw Material" || i.directSale || i.sku.startsWith("RM-"))
+    .map((i) => `${i.sku}: ${i.product} (Stock: ${i.stock})`);
 
   const currentOptions = productCategory === "Finished Product" ? finishedProducts : rawMaterials;
 
@@ -112,12 +82,12 @@ export default function SalesPipeline() {
     : "flex items-center justify-center w-10 h-10 rounded-full bg-slate-200 text-slate-500 font-bold";
 
   const finishedTabClass = productCategory === "Finished Product" 
-    ? "flex-1 py-3 text-sm font-bold rounded-lg transition-all bg-white text-blue-700 shadow-sm" 
-    : "flex-1 py-3 text-sm font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700";
+    ? "flex-1 py-3 text-sm font-bold rounded-lg transition-all bg-white text-blue-700 shadow-sm cursor-pointer" 
+    : "flex-1 py-3 text-sm font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700 cursor-pointer";
 
   const rawTabClass = productCategory === "Raw Material" 
-    ? "flex-1 py-3 text-sm font-bold rounded-lg transition-all bg-white text-purple-700 shadow-sm" 
-    : "flex-1 py-3 text-sm font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700";
+    ? "flex-1 py-3 text-sm font-bold rounded-lg transition-all bg-white text-purple-700 shadow-sm cursor-pointer" 
+    : "flex-1 py-3 text-sm font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700 cursor-pointer";
 
   const categoryTextColor = productCategory === "Raw Material" ? "text-purple-400" : "text-blue-400";
 
@@ -162,9 +132,17 @@ export default function SalesPipeline() {
                     <p className="text-sm text-slate-500 mt-0.5">Sales cannot process without a valid PO or SO.</p>
                   </div>
                 </div>
-                {isOrderValidated && (
+                {isOrderValidated ? (
                   <button onClick={() => setIsOrderValidated(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider cursor-pointer">
                     Edit Ref
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateOrderRef}
+                    className="text-xs text-blue-600 font-bold bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
+                    Auto-Generate SO#
                   </button>
                 )}
               </div>
@@ -173,7 +151,7 @@ export default function SalesPipeline() {
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex gap-3">
                     <span className="text-amber-500">⚠</span>
-                    <span className="text-sm font-medium text-amber-800">System Lock Active: Enter Customer PO or internal Sales Order to unlock the terminal.</span>
+                    <span className="text-sm font-medium text-amber-800">System Lock Active: Enter Customer PO or click Auto-Generate SO# to unlock the terminal.</span>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <input 

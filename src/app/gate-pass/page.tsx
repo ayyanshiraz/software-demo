@@ -1,9 +1,12 @@
 // src/app/gate-pass/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useErp, GatePassRecord } from "../../context/ErpContext";
 
 export default function GatePassModule() {
+  const { employees, setEmployees, gatePasses: gatePassRecords, setGatePasses: setGatePassRecords } = useErp();
+
   const [activeTab, setActiveTab] = useState("Issue Pass");
   const [reportFilter, setReportFilter] = useState("All");
   
@@ -11,56 +14,27 @@ export default function GatePassModule() {
   const filterOptions = ["All", "Official Use", "Personal Use"];
 
   const [selectedType, setSelectedType] = useState("Official Use");
-  const [employeeName, setEmployeeName] = useState("Ali Khan");
+  const [employeeName, setEmployeeName] = useState(employees[0]?.name || "Ali Khan");
   const [reason, setReason] = useState("");
   const [outTime, setOutTime] = useState("10:30 AM");
-
-  // Employees List State
-  const [employees, setEmployees] = useState(["Ali Khan", "Sara Ahmed", "Usman Asif", "Ajwa Arshad"]);
   const [newEmployeeName, setNewEmployeeName] = useState("");
 
-  const [gatePassRecords, setGatePassRecords] = useState([
-    { id: "GP-1001", name: "Ali Khan", type: "Official Use", reason: "Client meeting at Gulberg HQ", outTime: "10:30 AM", inTime: "01:45 PM", status: "Closed", typeColor: "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500/20", statusColor: "bg-slate-100 text-slate-600" },
-    { id: "GP-1002", name: "Sara Ahmed", type: "Personal Use", reason: "Bank visit for personal work", outTime: "11:15 AM", inTime: "Pending", status: "Active", typeColor: "bg-rose-50 text-rose-700 ring-1 ring-rose-500/20", statusColor: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/30" },
-    { id: "GP-1003", name: "Usman Asif", type: "Official Use", reason: "Site inspection and hardware delivery", outTime: "02:00 PM", inTime: "04:30 PM", status: "Closed", typeColor: "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500/20", statusColor: "bg-slate-100 text-slate-600" }
-  ]);
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
-
-  useEffect(() => {
-    const savedPasses = localStorage.getItem("covico_gate_passes");
-    if (savedPasses) {
-      try {
-        const parsed = JSON.parse(savedPasses);
-        if (parsed.length > 0) {
-          setGatePassRecords(parsed);
-        }
-      } catch (e) {}
-    }
-
-    const savedEmps = localStorage.getItem("covico_employees_list");
-    if (savedEmps) {
-      try {
-        const parsedEmps = JSON.parse(savedEmps);
-        if (parsedEmps.length > 0) {
-          setEmployees(parsedEmps);
-        }
-      } catch (e) {}
-    }
-  }, []);
-
-  const savePasses = (records: any[]) => {
-    setGatePassRecords(records);
-    localStorage.setItem("covico_gate_passes", JSON.stringify(records));
-  };
+  const [editingRecord, setEditingRecord] = useState<GatePassRecord | null>(null);
 
   const handleAddEmployee = () => {
-    if (newEmployeeName.trim() && !employees.includes(newEmployeeName.trim())) {
-      const updatedEmps = [...employees, newEmployeeName.trim()];
-      setEmployees(updatedEmps);
-      setEmployeeName(newEmployeeName.trim());
-      localStorage.setItem("covico_employees_list", JSON.stringify(updatedEmps));
+    const trimmed = newEmployeeName.trim();
+    if (trimmed && !employees.some(e => e.name.toLowerCase() === trimmed.toLowerCase())) {
+      const newEmp = {
+        id: `EMP-00${employees.length + 1}`,
+        name: trimmed,
+        email: `${trimmed.toLowerCase().replace(/\s+/g, ".")}@bizvibez.com`,
+        role: "Engineering Staff",
+        status: "Active",
+        color: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20"
+      };
+      setEmployees([...employees, newEmp]);
+      setEmployeeName(trimmed);
       setNewEmployeeName("");
     } else {
       alert("Please enter a valid or unique employee name.");
@@ -74,7 +48,7 @@ export default function GatePassModule() {
       return;
     }
 
-    const newPass = {
+    const newPass: GatePassRecord = {
       id: `GP-${Math.floor(1000 + Math.random() * 9000)}`,
       name: employeeName,
       type: selectedType,
@@ -90,18 +64,16 @@ export default function GatePassModule() {
         : "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/30"
     };
 
-    const updated = [newPass, ...gatePassRecords];
-    savePasses(updated);
+    setGatePassRecords([newPass, ...gatePassRecords]);
     setReason("");
     setActiveTab("History & Reports");
   };
 
   const handleDelete = (id: string) => {
-    const filtered = gatePassRecords.filter(r => r.id !== id);
-    savePasses(filtered);
+    setGatePassRecords(gatePassRecords.filter(r => r.id !== id));
   };
 
-  const openEditModal = (record: any) => {
+  const openEditModal = (record: GatePassRecord) => {
     setEditingRecord({ ...record });
     setIsEditModalOpen(true);
   };
@@ -125,7 +97,7 @@ export default function GatePassModule() {
       return r;
     });
 
-    savePasses(updatedList);
+    setGatePassRecords(updatedList);
     setIsEditModalOpen(false);
     setEditingRecord(null);
   };
@@ -338,8 +310,10 @@ export default function GatePassModule() {
                       onChange={(e) => setEmployeeName(e.target.value)}
                       className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
                     >
-                      {employees.map((emp, idx) => (
-                        <option key={idx} value={emp}>EMP-00{idx + 1} - {emp}</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.name}>
+                          {emp.id} - {emp.name}
+                        </option>
                       ))}
                     </select>
 
